@@ -1,2 +1,4 @@
 Flask
 geopy
+requests
+Flask-Cors
