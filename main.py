@@ -88,7 +88,9 @@ def flight_time():
         "departure": departure,
         "arrival": arrival,
         "distance_km": round(distance_km, 2),
-        "flight_time": (flight_time_hours, flight_time_minutes)
+        "flight_time": (flight_time_hours, flight_time_minutes),
+        "departure_coords": departure_coords,
+        "arrival_coords": arrival_coords
     })
 
 if __name__ == '__main__':
