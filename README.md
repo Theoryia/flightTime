@@ -54,10 +54,21 @@ http://127.0.0.1:5000/flight-time?departure=JFK&arrival=LAX
 
 ```json
 {
-  "departure": "JFK",
-  "arrival": "LAX",
-  "distance_km": 3983.19,
-  "flight_time_hours": 4.98
+	"arrival": "KLAX",
+	"arrival_coords": [
+		33.9425,
+		-118.408
+	],
+	"departure": "KJFK",
+	"departure_coords": [
+		40.6399,
+		-73.7787
+	],
+	"distance_km": 3982.96,
+	"flight_time": [
+		6,
+		11
+	]
 }
 
 ```
