@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from geopy.distance import geodesic
 import requests
 from flask_cors import CORS
+import datetime
 
 app = Flask(__name__)
 
@@ -38,25 +39,58 @@ def fetch_airport_coordinates(icao):
         return None
 
 # Function to calculate flight time based on distance and additional factors
-def calculate_flight_time(distance_km):
-    # Assume an average flight speed of 900 km/h for long-haul flights
-    average_speed_kmh = 900 if distance_km > 1500 else 800
+def calculate_flight_time(
+    distance_km,
+    cruise_speed_kmh=900,
+    climb_speed_kmh=500,
+    descent_speed_kmh=500,
+    climb_distance_km=80,
+    descent_distance_km=80,
+    taxi_out_minutes=15,
+    taxi_in_minutes=10,
+    sid_minutes=10,
+    star_minutes=10
+):
+    """
+    Estimate total flight time including taxi, SID, climb, cruise, descent, and STAR phases.
 
-    # Calculate flight time in hours and minutes with refined speed
-    flight_time_hours = int(distance_km // average_speed_kmh)
-    flight_time_minutes = int((distance_km % average_speed_kmh) / average_speed_kmh * 60)
+    Parameters:
+    - distance_km: total flight distance in kilometers
+    - cruise_speed_kmh: average cruise speed in km/h
+    - climb_speed_kmh: average climb speed in km/h
+    - descent_speed_kmh: average descent speed in km/h
+    - climb_distance_km: typical distance covered during climb in km
+    - descent_distance_km: typical distance covered during descent in km
+    - taxi_out_minutes: average taxi-out time in minutes
+    - taxi_in_minutes: average taxi-in time in minutes
+    - sid_minutes: average SID (Standard Instrument Departure) time in minutes
+    - star_minutes: average STAR (Standard Terminal Arrival Route) time in minutes
 
-    # Add 30 minutes for taxiing and departure
-    total_minutes = flight_time_hours * 60 + flight_time_minutes + 30
+    Returns:
+    - tuple (hours, minutes) representing the estimated total flight time
+    """
+    # Phase durations
+    taxi_out = datetime.timedelta(minutes=taxi_out_minutes)
+    sid = datetime.timedelta(minutes=sid_minutes)
+    taxi_in = datetime.timedelta(minutes=taxi_in_minutes)
+    star = datetime.timedelta(minutes=star_minutes)
 
-    # Add extra time for departure, arrival, and non-direct routes
-    extra_time_minutes = 45 + int(distance_km * 0.008)  # 1% of distance as extra time
-    total_minutes += extra_time_minutes
+    # Climb time
+    climb_time = datetime.timedelta(hours=climb_distance_km / climb_speed_kmh)
+    # Descent time
+    descent_time = datetime.timedelta(hours=descent_distance_km / descent_speed_kmh)
 
-    flight_time_hours = total_minutes // 60
-    flight_time_minutes = total_minutes % 60
+    # Calculate remaining cruise distance
+    cruise_distance = max(distance_km - climb_distance_km - descent_distance_km, 0)
+    cruise_time = datetime.timedelta(hours=cruise_distance / cruise_speed_kmh)
 
-    return flight_time_hours, flight_time_minutes
+    # Sum all phases
+    total_time = taxi_out + sid + climb_time + cruise_time + descent_time + star + taxi_in
+
+    # Convert to hours and minutes
+    total_hours = total_time.seconds // 3600 + total_time.days * 24
+    total_minutes = (total_time.seconds % 3600) // 60
+    return total_hours, total_minutes
 
 @app.route('/flight-time', methods=['GET'])
 def flight_time():
